@@ -1,10 +1,25 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, str::FromStr};
 
+#[derive(Debug)]
 enum Direction {
     Up,
     Down,
     Left,
     Right,
+}
+
+impl FromStr for Direction {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "KeyS" | "ArrowDown" => Ok(Direction::Down),
+            "KeyW" | "ArrowUp" => Ok(Direction::Up),
+            "KeyA" | "ArrowLeft" => Ok(Direction::Left),
+            "KeyD" | "ArrowRight" => Ok(Direction::Right),
+            _ => anyhow::bail!("Invalid key code!"),
+        }
+    }
 }
 
 struct Pos(u32, u32);
@@ -34,6 +49,6 @@ impl SnakeGame {
     }
 }
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> anyhow::Result<()> {
+    Ok(())
 }
