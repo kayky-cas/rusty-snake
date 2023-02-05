@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, str::FromStr};
+use std::{collections::VecDeque, ops::Add, str::FromStr};
 
 #[derive(Debug)]
 enum Direction {
@@ -22,18 +22,26 @@ impl FromStr for Direction {
     }
 }
 
-struct Pos(u32, u32);
+struct Pos(i32, i32);
+
+impl Add<&Pos> for Pos {
+    type Output = Pos;
+
+    fn add(self, rhs: &Pos) -> Self::Output {
+        return Pos(self.0 + rhs.0, self.1 + rhs.1);
+    }
+}
 
 struct SnakeGame {
-    widht: u32,
-    height: u32,
+    widht: i32,
+    height: i32,
     snake: VecDeque<Pos>,
     food: Pos,
     direction: Direction,
 }
 
 impl SnakeGame {
-    fn new(widht: u32, height: u32) -> Self {
+    pub fn new(widht: i32, height: i32) -> Self {
         let half_with = widht / 2;
         let half_height = height / 2;
 
@@ -46,6 +54,27 @@ impl SnakeGame {
             food: Pos(0, 0),
             direction: Direction::Right,
         };
+    }
+
+    fn gen_rand_food(&mut self) {}
+
+    fn walk(&mut self) {
+        let head = self.snake.iter().last().unwrap();
+
+        let new_head = match &self.direction {
+            Direction::Up => Pos(1, 0),
+            Direction::Down => Pos(-1, 0),
+            Direction::Left => Pos(0, -1),
+            Direction::Right => Pos(0, 1),
+        } + head;
+
+        self.snake.push_back(new_head);
+        self.snake.pop_front();
+    }
+
+    fn tick(&mut self) {
+        self.gen_rand_food();
+        self.walk();
     }
 }
 
