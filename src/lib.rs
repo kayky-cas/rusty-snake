@@ -1,4 +1,7 @@
+mod snake;
+use snake::{Pos, SnakeGame};
 use wasm_bindgen::prelude::*;
+use web_sys::HtmlElement;
 
 #[wasm_bindgen]
 extern "C" {
@@ -18,7 +21,7 @@ pub struct Interval {
 impl Interval {
     pub fn new<F: 'static>(millis: u32, f: F) -> Interval
     where
-        F: FnMut()
+        F: FnMut(),
     {
         let closure = Closure::new(f);
 
@@ -34,141 +37,61 @@ impl Drop for Interval {
     }
 }
 
-use std::{collections::VecDeque, ops::Add, str::FromStr};
-#[derive(Debug, Clone)]
-enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-impl FromStr for Direction {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> anyhow::Result<Self> {
-        match s {
-            "KeyS" | "ArrowDown" => Ok(Direction::Down),
-            "KeyW" | "ArrowUp" => Ok(Direction::Up),
-            "KeyA" | "ArrowLeft" => Ok(Direction::Left),
-            "KeyD" | "ArrowRight" => Ok(Direction::Right),
-            _ => anyhow::bail!("Invalid key code!"),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-struct Pos(i32, i32);
-
-impl Add<&Pos> for Pos {
-    type Output = Pos;
-
-    fn add(self, rhs: &Pos) -> Self::Output {
-        return Pos(self.0 + rhs.0, self.1 + rhs.1);
-    }
-}
-
-#[derive(Clone)]
-struct SnakeGame {
-    widht: i32,
-    height: i32,
-    snake: VecDeque<Pos>,
-    food: Pos,
-    direction: Direction,
-}
-
-impl SnakeGame {
-    pub fn new(widht: i32, height: i32) -> Self {
-        let half_with = widht / 2;
-        let half_height = height / 2;
-
-        let head = Pos(half_with, half_height);
-
-        return Self {
-            widht,
-            height,
-            snake: vec![head].into(),
-            food: Pos(0, 0),
-            direction: Direction::Left,
-        };
-    }
-
-    fn gen_rand_food(&mut self) {}
-
-    fn walk(&mut self) {
-        let head = self.snake.iter().last().unwrap();
-
-        let mut new_head = match &self.direction {
-            Direction::Up => Pos(1, 0),
-            Direction::Down => Pos(-1, 0),
-            Direction::Left => Pos(0, -1),
-            Direction::Right => Pos(0, 1),
-        } + head;
-
-        if new_head.0 >= self.widht || new_head.0 < 0 {
-            new_head.0 = new_head.0.rem_euclid(self.widht);
-        }
-
-        if new_head.1 >= self.height || new_head.1 < 0 {
-            new_head.1 = new_head.1.rem_euclid(self.height);
-        }
-
-        self.snake.push_back(new_head);
-        self.snake.pop_front();
-    }
-
-
-    fn print_snake(&self) {
-    }
-
-
-    fn tick(&mut self) {
-        self.print_snake();
-        self.walk();
-        log(format!("{:?}", self.snake.get(0)).as_ref());
-    }
-}
-
 #[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue> {
-    let width = 30;
-    let height = 30;
-
-    let window = web_sys::window().expect("no global `window` exists");
-    let document = window.document().expect("should have a document on window");
-    let body = document.body().expect("document should have a body");
-
-    let game =  document.create_element("div")?;
-
-    game.set_class_name("game");
-
-    for x in 0..width {
-        for y in 0..height  {
-            let cell = document.create_element("div")?;
-            cell.set_class_name("cell");
-            cell.set_id(format!("{}x{}-cell", x, y).as_ref());
-            cell.set_text_content(Some(&"⬜️"));
-
-            game.append_child(&cell)?;
-        }
-    }
-
-    body.append_child(&game)?;
+    let width = 20;
+    let height = 20;
 
     let mut snake_game = SnakeGame::new(width, height);
-    Interval::new(100, move || {
-       // snake_game.tick();
 
-        document.query_selector(".cell")
-					.unwrap()
-                    .iter()
-                    .for_each(|x| {
-                        x.set_text_content(Some(&""));
-                    });
+    Interval::new(500, move || {
+        snake_game.tick();
 
-        snake_game.snake.iter().for_each(|s| {
-            document.get_element_by_id(format!("{}x{}-cell", s.0, s.1).as_ref()).unwrap().set_text_content(Some(&"🟩"));
-        });
+        let document = web_sys::window()
+            .expect("no global `window` exists")
+            .document()
+            .expect("should have a document on window");
+
+        let body = document.body().expect("document should have a body");
+
+        let game = document
+            .get_element_by_id("game")
+            .unwrap_throw()
+            .dyn_into::<HtmlElement>()
+            .unwrap_throw();
+
+        game.set_text_content(Some(""));
+
+        game.style().set_property("display", "grid").unwrap_throw();
+
+        game.style()
+            .set_property(
+                "grid-template",
+                &format!("repeat({}, auto) / repeat({}, auto)", width, height),
+            )
+            .unwrap_throw();
+
+        for x in 0..width {
+            for y in 0..height {
+                let cell = document.create_element("div").unwrap_throw();
+                cell.set_class_name("cell");
+                cell.set_id(format!("{}x{}-cell", x, y).as_ref());
+
+                let pos = Pos(x, y);
+
+                cell.set_text_content({
+                    if snake_game.snake.contains(&pos) {
+                        Some("🤓")
+                    } else {
+                        Some(&"⬜️")
+                    }
+                });
+
+                game.append_child(&cell).unwrap_throw();
+            }
+        }
+
+        body.append_child(&game).unwrap_throw();
     });
 
     Ok(())
@@ -176,7 +99,7 @@ pub fn main() -> Result<(), JsValue> {
 
 #[cfg(test)]
 mod tests {
-    use crate::Pos;
+    use crate::snake::Pos;
 
     #[test]
     fn change_positon_increase() {

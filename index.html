@@ -1,21 +1,17 @@
 <!DOCTYPE html>
 <html lang="en-US">
-  <head>
-    <meta charset="utf-8" />
-    <title>hello-wasm example</title>
-  </head>
-<style>
-    .game {
-        display: grid;
-        grid-template-columns: repeat(10, 1fr);
-        grid-column-gap: 10px;
-        grid-row-gap: 10px;
-    }
-</style>
-  <body>
-    <script type="module">
-        import init from "./pkg/rusty_snake.js"
-        init()
-    </script>
-  </body>
+    <head>
+        <meta charset="utf-8" />
+        <title>hello-wasm example</title>
+    </head>
+    <style>
+    </style>
+    <body>
+        <script type="module">
+            import init from "./pkg/rusty_snake.js"
+            init()
+        </script>
+
+        <div id = "game"></div>
+    </body>
 </html
