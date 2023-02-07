@@ -67,6 +67,7 @@ name = "rusty-snake"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "js-sys",
  "wasm-bindgen",
  "web-sys",
 ]
