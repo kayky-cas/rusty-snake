@@ -21,5 +21,6 @@ features = [
     'HtmlElement',
     'Node',
     'Window',
-    "CssStyleDeclaration"
+    "CssStyleDeclaration",
+    "KeyboardEvent"
 ]

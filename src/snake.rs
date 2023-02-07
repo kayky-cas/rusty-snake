@@ -44,7 +44,7 @@ impl Add<&Pos> for Pos {
 
 #[derive(Clone)]
 pub struct SnakeGame {
-    pub widht: i32,
+    pub width: i32,
     pub height: i32,
     pub snake: VecDeque<Pos>,
     pub food: Pos,
@@ -59,7 +59,7 @@ impl SnakeGame {
         let head = Pos(half_with, half_height);
 
         return Self {
-            widht,
+            width: widht,
             height,
             snake: vec![head].into(),
             food: Pos(0, 0),
@@ -69,8 +69,8 @@ impl SnakeGame {
 
     fn gen_rand_food(&mut self) {
         loop {
-            let x = Math::floor(Math::random() * self.widht as f64) as i32;
-            let y = Math::floor(Math::random() * self.widht as f64) as i32;
+            let x = Math::floor(Math::random() * self.width as f64) as i32;
+            let y = Math::floor(Math::random() * self.width as f64) as i32;
 
             let food_pos = Pos(x, y);
 
@@ -88,8 +88,8 @@ impl SnakeGame {
             self.gen_rand_food();
 
             let new_head = match &self.direction {
-                Direction::Up => Pos(1, 0),
-                Direction::Down => Pos(-1, 0),
+                Direction::Up => Pos(-1, 0),
+                Direction::Down => Pos(1, 0),
                 Direction::Left => Pos(0, -1),
                 Direction::Right => Pos(0, 1),
             } + &head;
@@ -102,18 +102,29 @@ impl SnakeGame {
         let head = self.snake.get(0).unwrap();
 
         let mut new_head = match &self.direction {
-            Direction::Up => Pos(1, 0),
-            Direction::Down => Pos(-1, 0),
+            Direction::Up => Pos(-1, 0),
+            Direction::Down => Pos(1, 0),
             Direction::Left => Pos(0, -1),
             Direction::Right => Pos(0, 1),
         } + head;
 
-        if new_head.0 >= self.widht || new_head.0 < 0 {
-            new_head.0 = new_head.0.rem_euclid(self.widht);
+        if new_head.0 >= self.width || new_head.0 < 0 {
+            new_head.0 = new_head.0.rem_euclid(self.width);
         }
 
         if new_head.1 >= self.height || new_head.1 < 0 {
             new_head.1 = new_head.1.rem_euclid(self.height);
+        }
+
+        if self.snake.contains(&new_head) {
+            let half_with = self.width / 2;
+            let half_height = self.height / 2;
+
+            let head = Pos(half_with, half_height);
+
+            self.snake = vec![head].into();
+
+            return;
         }
 
         self.snake.push_front(new_head);
@@ -123,6 +134,5 @@ impl SnakeGame {
     pub fn tick(&mut self) {
         self.walk();
         self.eat();
-        log(format!("{:?}", self.snake.get(0)).as_ref());
     }
 }
