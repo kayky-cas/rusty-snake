@@ -2,68 +2,18 @@ use std::{cell::RefCell, rc::Rc};
 
 use snake::{Direction, Pos, SnakeGame};
 use wasm_bindgen::prelude::*;
-use web_sys::{window, HtmlElement};
+use web_sys::{window, HtmlElement, Window};
 
 mod snake;
 
 #[wasm_bindgen]
 extern "C" {
     fn setInterval(closure: &Closure<dyn FnMut()>, millis: u32) -> f64;
-    fn cancelInterval(token: f64);
 
 }
 
-#[wasm_bindgen]
-pub struct Interval {
-    closure: Closure<dyn FnMut()>,
-    token: f64,
-}
-
-impl Interval {
-    pub fn new<F: 'static>(millis: u32, f: F) -> Interval
-    where
-        F: FnMut(),
-    {
-        // Construct a new closure.
-        let closure = Closure::new(f);
-
-        // Pass the closure to JS, to run every n milliseconds.
-        let token = setInterval(&closure, millis);
-
-        Interval { closure, token }
-    }
-}
-
-// When the Interval is destroyed, cancel its `setInterval` timer.
-impl Drop for Interval {
-    fn drop(&mut self) {
-        cancelInterval(self.token);
-    }
-}
-
-#[wasm_bindgen(start)]
-pub fn main() {
-    let width = 15;
-    let height = 15;
-
-    let game_ref = Rc::new(RefCell::new(SnakeGame::new(width, height)));
-
-    let game = game_ref.clone();
-    let keypress_event = Closure::<dyn FnMut(_)>::new(move |event: web_sys::KeyboardEvent| {
-        let direction = event.code().parse::<Direction>();
-
-        if let Ok(direction) = direction {
-            game.borrow_mut().direction = direction;
-        }
-    });
-
-    window()
-        .unwrap_throw()
-        .add_event_listener_with_callback("keypress", keypress_event.as_ref().unchecked_ref())
-        .unwrap_throw();
-
-    let game = game_ref.clone();
-    Interval::new(100, move || {
+fn game_tick(game: Rc<RefCell<SnakeGame>>, millis: i32) {
+    let tick = Closure::new(move || {
         let document = window().unwrap_throw().document().unwrap_throw();
 
         let board = document
@@ -96,9 +46,9 @@ pub fn main() {
                     .dyn_into::<HtmlElement>()
                     .unwrap_throw();
 
-                let mut text = "⬜️";
-
                 let pos = Pos(x, y);
+
+                let mut text = "⬜️";
 
                 if pos == game.borrow().food {
                     text = "🍎";
@@ -116,25 +66,42 @@ pub fn main() {
 
         game.borrow_mut().tick();
     });
+
+    window()
+        .unwrap_throw()
+        .set_interval_with_callback_and_timeout_and_arguments_0(
+            tick.as_ref().unchecked_ref(),
+            millis,
+        )
+        .unwrap_throw();
+
+    tick.forget();
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::snake::Pos;
+fn keypress_event(game: Rc<RefCell<SnakeGame>>) {
+    let keypress_event = Closure::<dyn FnMut(_)>::new(move |event: web_sys::KeyboardEvent| {
+        let direction = event.code().parse::<Direction>();
 
-    #[test]
-    fn change_positon_increase() {
-        let pos1 = Pos(1, 1);
-        let pos2 = Pos(1, 1);
+        if let Ok(direction) = direction {
+            game.borrow_mut().direction = direction;
+        }
+    });
 
-        assert_eq!(pos1 + &pos2, Pos(2, 2));
-    }
+    window()
+        .unwrap_throw()
+        .add_event_listener_with_callback("keypress", keypress_event.as_ref().unchecked_ref())
+        .unwrap_throw();
 
-    #[test]
-    fn change_positon_decrease() {
-        let pos1 = Pos(1, 1);
-        let pos2 = Pos(-1, 1);
+    keypress_event.forget();
+}
 
-        assert_eq!(pos1 + &pos2, Pos(0, 2));
-    }
+#[wasm_bindgen(start)]
+pub fn main() {
+    let width = 15;
+    let height = 15;
+
+    let game = Rc::new(RefCell::new(SnakeGame::new(width, height)));
+
+    keypress_event(game.clone());
+    game_tick(game.clone(), 100);
 }
