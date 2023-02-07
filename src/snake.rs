@@ -1,3 +1,4 @@
+use js_sys::Math;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
@@ -66,10 +67,39 @@ impl SnakeGame {
         };
     }
 
-    fn gen_rand_food(&mut self) {}
+    fn gen_rand_food(&mut self) {
+        loop {
+            let x = Math::floor(Math::random() * self.widht as f64) as i32;
+            let y = Math::floor(Math::random() * self.widht as f64) as i32;
+
+            let food_pos = Pos(x, y);
+
+            if !self.snake.contains(&food_pos) {
+                self.food = food_pos;
+                return;
+            }
+        }
+    }
+
+    fn eat(&mut self) {
+        let head = self.snake.get(0).unwrap().clone();
+
+        if head == self.food {
+            self.gen_rand_food();
+
+            let new_head = match &self.direction {
+                Direction::Up => Pos(1, 0),
+                Direction::Down => Pos(-1, 0),
+                Direction::Left => Pos(0, -1),
+                Direction::Right => Pos(0, 1),
+            } + &head;
+
+            self.snake.push_front(new_head);
+        }
+    }
 
     fn walk(&mut self) {
-        let head = self.snake.iter().last().unwrap();
+        let head = self.snake.get(0).unwrap();
 
         let mut new_head = match &self.direction {
             Direction::Up => Pos(1, 0),
@@ -86,15 +116,13 @@ impl SnakeGame {
             new_head.1 = new_head.1.rem_euclid(self.height);
         }
 
-        self.snake.push_back(new_head);
-        self.snake.pop_front();
+        self.snake.push_front(new_head);
+        self.snake.pop_back();
     }
 
-    fn print_snake(&self) {}
-
     pub fn tick(&mut self) {
-        self.print_snake();
         self.walk();
+        self.eat();
         log(format!("{:?}", self.snake.get(0)).as_ref());
     }
 }
